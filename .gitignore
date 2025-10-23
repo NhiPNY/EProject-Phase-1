@@ -1,0 +1,66 @@
+# =========================
+# 👨‍💻 Node.js dependencies
+# =========================
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# =========================
+# 🔒 Environment files
+# =========================
+.env
+**/.env
+
+# =========================
+# 🧱 Build output
+# =========================
+dist/
+build/
+coverage/
+.tmp/
+.cache/
+logs/
+*.log
+*.pid
+*.seed
+*.tgz
+
+# =========================
+# 🧰 Docker
+# =========================
+docker-data/
+*.pid
+*.tar
+docker-compose.override.yml
+
+# =========================
+# 🧩 Services (ignore local env & deps)
+# =========================
+/api-gateway/node_modules/
+/api-gateway/.env
+
+/auth/node_modules/
+/auth/.env
+
+/order/node_modules/
+/order/.env
+
+/product/node_modules/
+/product/.env
+
+# =========================
+# 🧑‍💻 IDE / Editor settings
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# 💻 System files
+# =========================
+.DS_Store
+Thumbs.db

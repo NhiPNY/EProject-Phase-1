@@ -1,0 +1,89 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:6
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies for all services
+        run: |
+          set -e
+          for d in api-gateway auth product order; do
+            if [ -f "$d/package.json" ]; then
+              echo "Installing dependencies for $d"
+              (cd $d && npm ci || npm install)
+            fi
+          done
+
+      - name: Run tests for services that have test files
+        env:
+          MONGODB_AUTH_URI: mongodb://127.0.0.1:27017/auth_db
+          NODE_ENV: test
+          JWT_SECRET: test_secret
+        run: |
+          set -e
+          for d in auth product; do
+            if [ -f "$d/package.json" ]; then
+              echo "Installing mocha for $d"
+              (cd $d && npm install --save-dev mocha)
+              echo "Running tests for $d"
+              (cd $d && npx mocha --timeout 20000 "src/test/**/*.test.js" --exit || echo "No test files found in $d")
+            fi
+          done
+
+
+  build-and-push:
+    needs: build-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker images
+        env:
+          DOCKER_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          GIT_SHA: ${{ github.sha }}
+        run: |
+          set -e
+          for d in api-gateway auth product order; do
+            if [ -f "$d/Dockerfile" ]; then
+              IMAGE_NAME="$DOCKER_USER/$d:$GIT_SHA"
+              echo "Building and pushing $IMAGE_NAME"
+              docker build -t "$IMAGE_NAME" "$d"
+              docker push "$IMAGE_NAME"
+            fi
+          done
