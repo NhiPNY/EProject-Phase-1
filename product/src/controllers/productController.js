@@ -110,16 +110,7 @@ class ProductController {
     }
   }
 
-  async getProductById(req, res){
-  try{
-    if(!req.headers.authorization) return res.sendStatus(401);
-    const p=await Product.findById(res.params.id);
-    return p?res.json(p):res.sendStatus(404);
-
-  }catch {res.sendStatus(500)};  
-  }
-
-
+  
 
 }
 
